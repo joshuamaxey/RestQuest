@@ -13,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      //^ Note that it's not necessary to define relationships here because the User model is on the 'one' side of the one-to-many relationships with other models in this database. The relationships (belongsTo) are already defined in the other model files. But it is good practice to define the relationships in both directions.
+      User.hasMany(models.Spot, { foreignKey: 'ownerId' });
+      User.hasMany(models.Booking, { foreignKey: 'userId' });
+      User.hasMany(models.Review, { foreignKey: 'userId' });
     }
   }
   User.init({
