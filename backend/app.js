@@ -10,6 +10,8 @@ const cookieParser = require('cookie-parser');
 
 const { environment } = require('./config');
 const isProduction = environment === 'production';
+const routes = require('./routes');
+const { ValidationError } = require('sequelize');
 
 // Initialize the express application
 
@@ -58,8 +60,48 @@ app.use(
 
 //^ Now we have set up all of the pre-request middlware. Next, we set up the routes for our Express application. See 'routes' directory in backend folder.
 
-const routes = require('./routes');
-
 app.use(routes);
+
+//! Error Handlers (Note that our error-handing middleware goes BELOW our route handlers [below the app.use(routes)])
+
+//& 404 Error Handler
+
+//^ "Resource Not Found ErrorHandler" this doesn't actualy take in an error- it's just regular middlware. It will catch any requests that do not match the routes defiend in app.js and create a server error with a status code of 404. Again- this middlware doesn't take in an error, it takes in requests that are NOT otherwise being handled!
+
+app.use((_req, _res, next) => { // note the underscores here, which mean that we are actually NOT using these arguments in this callback function
+    const err = new Error("The requested resource couldn't be found.");
+    err.title = "Resource Not Found";
+    err.errors = ["The requested resource couldn't be found"]; // any uncaught errors will be pushed into this array
+    err.status = 404;
+    next(err);
+});
+
+//& Sequelize Error Handler
+
+//^ It is often the case that when we attempt to create a record in Sequelize with issues we will often throw a 'ValidationError'. This middleware is intended specifically to catch these errors. It will iterate over the error object and create an array of the relevant error messages.
+
+app.use((err, _req, _res, next) => {
+    // Check if the error is a Sequelize error (validationError)
+    if (err instanceof ValidationError) {
+        err.errors = err.errors.map((e) => e.message); // map our error messages into an array
+        err.title = 'Validation error';
+    }
+    next(err);
+})
+
+//& Error Formatter
+
+//^ This error handler will format and send our error response back to the client. Note that this goes at the very end of the file, after all of the error handlers (which in turn are placed after our middlewares, which come after our route handlers)
+
+app.use((err, _req, res, _next) => {
+    res.status(err.status || 500);
+    console.error(err); // console.log for debugging, comment this out in production
+    res.json({
+        title: err.title || 'Server Error',
+        message: err.message,
+        errors: err.errors, // an array of error messages
+        stack: isProduction ? null : err.stack // If we're in a production environment, set the 'stack' to null (do not show the stack trace). Otherwise, show the err.stack (show the stack trace)
+    });
+});
 
 module.exports = app;
