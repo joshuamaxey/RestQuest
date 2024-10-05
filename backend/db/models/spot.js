@@ -14,7 +14,27 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       Spot.belongsTo(models.User, { foreignKey: 'ownerId' });
+      Spot.hasMany(models.Booking, { foreignKey: 'spotId' });
+      Spot.hasMany(models.Review, { foreignKey: 'spotId' });
+      Spot.hasMany(models.Image, { foreignKey: 'spotId' });
     }
+
+    // Calculate average rating
+    async getAvgRating() {
+      const reviews = await this.getReviews();
+      if (!reviews.length) return null;
+
+      const totalStars = reviews.reduce((acc, review) => acc + review.stars)
+      return totalStars / reviews.length;
+    }
+
+    // fetch previewImage
+    async getPreviewImage() {
+      const images = await this.getImages({ where: { preview: true } });
+      return images.length ? images[0] : null;
+    }
+
+    //^ Note that Sequelize provides built-in instancem ethods such as 'getReviews()' and 'getImages()' which are used in the methods defined above.
   }
   Spot.init({
     ownerId: DataTypes.INTEGER,
