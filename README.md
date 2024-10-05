@@ -2,7 +2,7 @@
 
 ## Database Schema Design
 
-`<insert database schema design here>`
+<img src="./images/restQuest.png" alt="database schema" width=50%>
 
 ## API Documentation
 
